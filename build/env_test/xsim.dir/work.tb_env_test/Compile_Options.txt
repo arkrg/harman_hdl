@@ -1,0 +1,1 @@
+"tb_env_test" -debug "typical" -log "compile.log" 
