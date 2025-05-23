@@ -1,4 +1,0 @@
-INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/home/user1/projects/env_test/src/env_test.v" into library work
-INFO: [VRFC 10-311] analyzing module env_test
-INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/home/user1/projects/env_test/tb/tb_env_test.sv" into library work
-INFO: [VRFC 10-311] analyzing module tb_env_test
