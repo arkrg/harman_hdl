@@ -1,13 +1,11 @@
-//import uart_config::*;
 module uart_tx (
     input rstn,
     input clk,
     input pls_tx,
     input [7:0] data,
-    input valid_tx,
+    input vld_tx,
 
-    input uart_config ucfg,
-    //input uart_config_tx ucfg_tx,
+    input uart_config_tx ucfg_tx,
 
     output logic uart_txd,
     output logic empty_tsr,
@@ -21,20 +19,20 @@ module uart_tx (
   logic [7:0] tsr;
 
   logic load_tsr;
-  logic tx_done;
+  logic done_tx;
   logic en_start;
 
-  assign tx_busy = (state != IDLE);
+  assign busy_tx = (state != IDLE);
   assign en_start = (state == IDLE) && (!empty_tsr);
   assign parity = calc_parity(
-      .parity_en(ucfg.parity_en), .parity_even(ucfg.parity_even), .data(tsr)
+      .parity_en(ucfg_tx.parity_en), .parity_even(ucfg_tx.parity_even), .data(tsr)
   );
 
   always @(posedge clk or negedge rstn) begin
     if (!rstn) begin
       load_tsr <= 0;
     end else begin
-      load_tsr <= (state == IDLE) & valid_tx & empty_tsr;
+      load_tsr <= (state == IDLE) & vld_tx & empty_tsr;
     end
   end
   always @(posedge clk or negedge rstn) begin
@@ -53,7 +51,7 @@ module uart_tx (
       if (load_tsr) begin
         tsr <= data;
       end
-      if (tx_done) begin
+      if (done_tx) begin
       end
     end
   end
@@ -83,7 +81,7 @@ module uart_tx (
   always @(*) begin
     nxt_state = IDLE;
     nxt_bitcnt = 0;
-    tx_done = 0;
+    done_tx = 0;
     case (state)
       IDLE: begin
         if (en_start) begin
@@ -96,8 +94,8 @@ module uart_tx (
         nxt_state = DATA;
       end
       DATA: begin
-        if (bitcnt >= ucfg.data_len - 1) begin
-          nxt_state = (ucfg.parity_en) ? PARITY : STOP;
+        if (bitcnt >= ucfg_tx.data_len - 1) begin
+          nxt_state = (ucfg_tx.parity_en) ? PARITY : STOP;
         end else begin
           nxt_state  = DATA;
           nxt_bitcnt = bitcnt + 1;
@@ -107,9 +105,9 @@ module uart_tx (
         nxt_state = STOP;
       end
       STOP: begin
-        if (bitcnt >= ucfg.stop_len - 1) begin
+        if (bitcnt >= ucfg_tx.stop_len - 1) begin
           nxt_state = IDLE;
-          tx_done   = 1;
+          done_tx   = 1;
         end else begin
           nxt_state  = STOP;
           nxt_bitcnt = bitcnt + 1;

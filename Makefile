@@ -1,28 +1,31 @@
 #Makefile
 
-TARGET ?= target
+TARGET ?= uart
+MODE ?= rtl
+TOP ?= tb_$(TARGET)
 
-SRC_DIR = $(TARGET)/src
 SIM_DIR = sim
-TB_DIR = $(TARGET)/tb
 
-BUILD_DIR = build/$(TARGET)
-IFS_DIR = ifs
+BUILD_DIR = build/$(TARGET)_$(MODE)_$(TOP)/
+IFS_DIR = ifs 
 
-.PHONY: compile sim wave all clean
-
+.PHONY: run compile sim wave all clean
 compile:
 	mkdir -p $(BUILD_DIR)
 	cd $(BUILD_DIR) && vivado -mode batch \
-	-source ../../$(SIM_DIR)/compile.tcl -tclargs $(TARGET) \
-	-log vivado.log
+	-source ../../$(SIM_DIR)/compile.tcl \
+	-tclargs $(TARGET) $(MODE) $(TOP)\
 
 sim:
-	cd $(BUILD_DIR) && xsim tb_$(TARGET) -tclbatch ../../$(SIM_DIR)/sim.tcl
+	mkdir -p $(BUILD_DIR)
+	cd $(BUILD_DIR) && xsim $(TOP) -tclbatch ../../$(SIM_DIR)/sim.tcl 
 
 wave:
 	gtkwave $(BUILD_DIR)/*.vcd &
 
+run: compile sim
+
 all: compile sim wave
 
-run: compile sim
+clean: 
+	cd $(BUILD_DIR) && rm -rf  *jou *.log *.pb *.dir
