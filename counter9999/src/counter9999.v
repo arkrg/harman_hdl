@@ -10,11 +10,11 @@ module counter9999 #(
     input sw1_clr,
     input sw2_inc,
 
-    output reg [3:0] fnd_com,
-    output     [6:0] fnd_data
+    output [3:0] fnd_com,
+    output [6:0] fnd_data
 );
 
-  wire pls_1khz, pls_10hz;
+  wire pls_10hz;
   wire [1:0] sel_place;
   reg [$clog2(MAX_COUNTER)-1:0] count;
 
@@ -59,31 +59,15 @@ module counter9999 #(
   end
 
   /*----------------------------------------------------------*/
-  cdiv_tick #(
-      .MAX_COUNTER(DIV_SELPLACE)
-  ) inst_plsgen_fnd (
+  fnd_ctrl #(
+      .DIV_SELPLACE(DIV_SELPLACE)
+  ) inst_fndctrl (
       .clk(clk),
       .rst(rst),
-      .pls(pls_1khz)
-  );
-  counter_4 inst_cnt (
-      .clk(pls_1khz),
-      .rst(rst),
-      .cnt(sel_place)
-  );
-  fnd_ctrl inst_fndctrl (
       .in_val(count),
       .sel_place(sel_place),
+      .fnd_com(fnd_com),
       .fnd_data(fnd_data)
   );
 
-  always @(*) begin
-    fnd_com = 4'b1111;
-    case (sel_place)
-      2'b00: fnd_com = 4'b1110;
-      2'b01: fnd_com = 4'b1101;
-      2'b10: fnd_com = 4'b1011;
-      2'b11: fnd_com = 4'b0111;
-    endcase
-  end
 endmodule

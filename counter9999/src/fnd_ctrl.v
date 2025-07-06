@@ -1,11 +1,17 @@
 `timescale 1ns / 1ps
-module fnd_ctrl (
-    input [1:0] sel_place,
+module fnd_ctrl #(
+    parameter DIV_SELPLACE = 10_000
+) (
+    input clk,
+    input rst,
     input [13:0] in_val,
+    input [1:0] sel_place,
+    output reg [3:0] fnd_com,
     output reg [7:0] fnd_data
 );
+  wire pls_1khz;
   wire [3:0] digit_1, digit_10, digit_100, digit_1000;
-  wire [7:0] fnd_data_1, fnd_data_10, fnd_data_100, fnd_data_1000;
+  reg [3:0] digit;
 
   digit_spliter inst_spltr (
       .in_val    (in_val),
@@ -15,32 +21,45 @@ module fnd_ctrl (
       .digit_1000(digit_1000)
   );
 
-  bcd_decoder inst_dec_1 (
-      .bcd(digit_1),
-      .fnd_data(fnd_data_1)
-  );
-  bcd_decoder inst_dec_10 (
-      .bcd(digit_10),
-      .fnd_data(fnd_data_10)
-  );
-  bcd_decoder inst_dec_100 (
-      .bcd(digit_100),
-      .fnd_data(fnd_data_100)
-  );
-  bcd_decoder inst_dec_1000 (
-      .bcd(digit_1000),
-      .fnd_data(fnd_data_1000)
-  );
-
   always @(*) begin
-    fnd_data = 'b0;
+    fnd_com = 4'b1111;
     case (sel_place)
-      2'b00: fnd_data = fnd_data_1;
-      2'b01: fnd_data = fnd_data_10;
-      2'b10: fnd_data = fnd_data_100;
-      2'b11: fnd_data = fnd_data_1000;
+      2'b00: fnd_com = 4'b1110;
+      2'b01: fnd_com = 4'b1101;
+      2'b10: fnd_com = 4'b1011;
+      2'b11: fnd_com = 4'b0111;
     endcase
   end
+
+  always @(*) begin
+    digit = 'b0;
+    case (sel_place)
+      2'b00: digit = digit_1;
+      2'b01: digit = digit_10;
+      2'b10: digit = digit_100;
+      2'b11: digit = digit_1000;
+    endcase
+  end
+
+  bcd_decoder inst_dec_1 (
+      .bcd(digit),
+      .fnd_data(fnd_data)
+  );
+  //-----------
+  cdiv_tick #(
+      .MAX_COUNTER(DIV_SELPLACE)
+  ) inst_plsgen_fnd (
+      .clk(clk),
+      .rst(rst),
+      .pls(pls_1khz)
+  );
+  cnt_modN #(
+      .N(4)
+  ) inst_cnt (
+      .clk(pls_1khz),
+      .rst(rst),
+      .cnt(sel_place)
+  );
 
 endmodule
 
