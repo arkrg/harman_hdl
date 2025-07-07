@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // Testbench for 'count9999' module
-// verufes behavior unter the following countrol signal:
+// verufies behavior unter the following countrol signal:
 // -sw0_stp: freezes the counter 
 // -sw1_clr: resets the counter to zero
 // -sw2_inc: determines count direction (0=up, 0=down)
