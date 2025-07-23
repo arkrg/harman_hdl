@@ -1,13 +1,13 @@
 module dualwatch_core (
-    input clk,
-    input rst,
-    input fmt_mode,  // 1: HH.MM, 0: SS.mm
-    input stpw_mode,  // 1: stpw 0: wtch
-    input calib_mode,
-    input btnL,
-    input btnR,
-    input btnU,
-    input btnD,
+    input        clk,
+    input        rst,
+    input        fmt_mode,    // 1: HH.MM, 0: SS.mm
+    input        stpw_mode,   // 1: stpw 0: wtch
+    input        calib_mode,
+    input        btnL,
+    input        btnR,
+    input        btnU,
+    input        btnD,
     output [3:0] fnd_com,
     output [7:0] fnd_data
 );
@@ -21,7 +21,7 @@ module dualwatch_core (
 
     assign {btnL_w, btnR_w, btnU_w, btnD_w} = {4{(stpw_mode == 0)}} & {btnL, btnR, btnU, btnD};
     assign {btnL_s, btnR_s, btnU_s, btnD_s} = {4{(stpw_mode == 1)}} & {btnL, btnR, btnU, btnD};
-    
+
     stpw_top U_STPW (
         .clk      (clk),
         .rst      (rst),

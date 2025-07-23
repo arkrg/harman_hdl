@@ -2,9 +2,9 @@ module uart_fifo_lp (
     input clk,
     input rst,
     input rx,
+    output tx,
     output [7:0] rdata_wdata,
-    output fifo_tx_push,
-    output tx
+    output empty_bpush
 );
   wire tx_start, rx_done;
   wire [7:0] tx_data, rx_data;
@@ -14,7 +14,7 @@ module uart_fifo_lp (
   wire rx_done_push;
   // RX FIFO -> TX FIFO
   // wire [7:0] rdata_wdata;
-  wire empty_bpush;
+  // wire empty_bpush;
   // TX FIFO -> RX FIFO
   wire full_bpop;
   // TX FIFO -> TX UART
@@ -22,7 +22,6 @@ module uart_fifo_lp (
   wire empty_bstart;
   // TX UART -> TX FIFO
   wire tx_busy_bpop;
-  assign fifo_tx_push = ~empty_bpush;
 
   uart U_UART (
       .clk     (clk),

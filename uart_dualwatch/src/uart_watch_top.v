@@ -1,14 +1,14 @@
 module uart_watch_top (
     input        clk,
     input        rst,
-    input        rx,
     input        sw_fmt,    // 1: HH.MM, 0: SS.mm
-    input        sw_wtch,   // 1: wtch 0: stpw
+    input        sw_stpw,   // 1: stpw 0: watch
     input        sw_calib,
     input        btnR,
     input        btnL,
     input        btnU,
     input        btnD,
+    input        rx,
     output       tx,
     output [3:0] led,
     output [3:0] fnd_com,
@@ -19,115 +19,70 @@ module uart_watch_top (
   localparam [7:0] CMD_FMT = 8'h46, CMD_WTCH = 8'h4d, CMD_CALIB = 8'h43;
   // ASCII           F : 8'h72,            M : 8'h73,         C : 8'h63  
 
-  wire [7:0] rx_data_wdata;
+  wire tx_start, rx_done;
+  wire [7:0] tx_data, rx_data;
+
+  // RX FIFO -> TX FIFO
+  wire [7:0] rdata_wdata;
+  wire empty_bpush;
+
   wire cmdR, cmdL, cmdU, cmdD;
   wire bcmdR, bcmdL, bcmdU, bcmdD;
   wire ucmdR, ucmdL, ucmdU, ucmdD;
   wire ucmdFMT, ucmdWTCH, ucmdCALIB;
 
-  // sync_deb U_RUN_BTN_DB[3:0] (
-  //     .clk  (clk),
-  //     .rst  (rst),
-  //     .i_btn({btnR, btnL, btnU, btnD}),
-  //     .o_btn({bcmdR, bcmdL, bcmdU, bcmdD})
-  // );
-  //
-  assign {bcmdR, bcmdL, bcmdU, bcmdD} = {btnR, btnL, btnU, btnD};
+  sync_deb U_RUN_BTN_DB[3:0] (
+      .clk  (clk),
+      .rst  (rst),
+      .i_btn({btnR, btnL, btnU, btnD}),
+      .o_btn({bcmdR, bcmdL, bcmdU, bcmdD})
+  );
 
-  wire fifo_tx_push;
   uart_fifo_lp U_UART_LP (
       .clk(clk),
       .rst(rst),
       .rx(rx),
       .tx(tx),
       .rdata_wdata(rdata_wdata),
-      .fifo_tx_push(fifo_tx_push)
+      .empty_bpush(empty_bpush)
   );
-  // reg [7:0] uart_command;
-  // always @(posedge clk or posedge rst) begin
-  //   if (rst) begin
-  //     uart_command <= 0;
-  //   end else begin
-  //     if (fifo_tx_push) uart_command <= rdata_wdata;
-  //     else uart_command <= 0;
-  //   end
-  // end
 
 
-  // assign ucmdR = (uart_command == CMD_RUN) | (uart_command == CMD_STOP) | (uart_command == CMD_RIGHT);
-  // assign ucmdL = (uart_command == CMD_LEFT);
-  // assign ucmdU = (uart_command == CMD_UP);
-  // assign ucmdD = (uart_command == CMD_DOWN);
-  // assign ucmdFMT = (uart_command == CMD_FMT);
-  // assign ucmdWTCH = (uart_command == CMD_WTCH);
-  // assign ucmdCALIB = (uart_command == CMD_CALIB);
-  //
-  // assign cmdR = (bcmdR) ? bcmdR : ucmdR;
-  // assign cmdL = (bcmdL) ? bcmdL : ucmdL;
-  // assign cmdU = (bcmdU) ? bcmdU : ucmdU;
-  // assign cmdD = (bcmdD) ? bcmdD : ucmdD;
+  wire fifo_tx_push;
+  assign fifo_tx_push = ~empty_bpush;
+  wire [7:0] uart_command;
+  shift_register U_SR (
+      .clk(clk),
+      .rst(rst),
+      .d  (rdata_wdata),
+      .en (fifo_tx_push),
+      .q  (uart_command)
+  );
 
-  localparam FMT_SSmm = 0, FMT_HHMM = 1;
-  reg c_ufmt_state, n_ufmt_state;
-  localparam STPW = 0, WTCH = 1;
-  reg c_uwtch_state, n_uwtch_state;
-  localparam NORM = 0, CALIB = 1;
-  reg c_ucalib_state, n_ucalib_state;
-
-  always @(posedge clk or posedge rst) begin
-    if (rst) begin
-      c_ufmt_state   <= FMT_SSmm;
-      c_uwtch_state  <= STPW;
-      c_ucalib_state <= NORM;
-    end else begin
-      c_ufmt_state   <= n_ufmt_state;
-      c_uwtch_state  <= n_uwtch_state;
-      c_ucalib_state <= n_ucalib_state;
-    end
-  end
-
-  always @(*) begin
-    n_ufmt_state = FMT_HHMM;
-    if (sw_fmt == 0) begin
-      case (c_ufmt_state)
-        FMT_HHMM: n_ufmt_state = (ucmdFMT) ? FMT_SSmm : FMT_HHMM;
-        FMT_SSmm: n_ufmt_state = (ucmdFMT) ? FMT_HHMM : FMT_SSmm;
-      endcase
-    end
-  end
-
-  assign u_fmt = (c_ufmt_state == FMT_HHMM);
-  assign fmt_mode = (sw_fmt) ? sw_fmt : u_fmt;
-
-  always @(*) begin
-    n_uwtch_state = STPW;
-    if (sw_wtch == 0) begin
-      case (c_uwtch_state)
-        WTCH: n_uwtch_state = (ucmdWTCH) ? STPW : WTCH;
-        STPW: n_uwtch_state = (ucmdWTCH) ? WTCH : STPW;
-      endcase
-    end
-  end
-  assign u_wtch = (c_uwtch_state == WTCH);
-  assign wtch_mode = (sw_wtch) ? sw_wtch : u_wtch;
-
-  always @(*) begin
-    n_ucalib_state = NORM;
-    if (sw_calib == 0) begin
-      case (c_ucalib_state)
-        NORM:  n_ucalib_state = (ucmdCALIB) ? CALIB : NORM;
-        CALIB: n_ucalib_state = (ucmdCALIB) ? NORM : CALIB;
-      endcase
-    end
-  end
-  assign u_calib = (c_ucalib_state == CALIB);
-  assign calib_mode = (sw_calib) ? sw_calib : u_calib;
-
+  ucmd_decoder U_CMD_DEC (
+      .clk         (clk),
+      .rst         (rst),
+      .sw_fmt      (sw_fmt),
+      .sw_stpw     (sw_stpw),
+      .sw_calib    (sw_calib),
+      .bcmdR       (bcmdR),
+      .bcmdL       (bcmdL),
+      .bcmdU       (bcmdU),
+      .bcmdD       (bcmdD),
+      .uart_command(uart_command),
+      .fmt_mode    (fmt_mode),
+      .stpw_mode   (stpw_mode),
+      .calib_mode  (calib_mode),
+      .cmdR        (cmdR),
+      .cmdL        (cmdL),
+      .cmdU        (cmdU),
+      .cmdD        (cmdD)
+  );
   dualwatch U_DUALWATCH (
       .clk       (clk),
       .rst       (rst),
       .fmt_mode  (fmt_mode),
-      .stpw_mode (wtch_mode),
+      .stpw_mode (stpw_mode),
       .calib_mode(calib_mode),
       .btnR      (cmdR),
       .btnL      (cmdL),
@@ -139,30 +94,25 @@ module uart_watch_top (
   );
 
 endmodule
-module ucmd_decoder(
-    input [7:0] rdata_wdata,
 
+module shift_register (
+    input clk,
+    input rst,
+    input [7:0] d,
+    input en,
+    output [7:0] q
 );
-   reg [7:0] uart_command;
+
+  reg [7:0] r_q;
   always @(posedge clk or posedge rst) begin
     if (rst) begin
-      uart_command <= 0;
+      r_q <= 0;
     end else begin
-      if (fifo_tx_push) uart_command <= rdata_wdata;
-      else uart_command <= 0;
+      if (en) r_q <= d;
+      else r_q <= 0;
     end
   end
-  assign ucmdR = (uart_command == CMD_RUN) | (uart_command == CMD_STOP) | (uart_command == CMD_RIGHT);
-  assign ucmdL = (uart_command == CMD_LEFT);
-  assign ucmdU = (uart_command == CMD_UP);
-  assign ucmdD = (uart_command == CMD_DOWN);
-  assign ucmdFMT = (uart_command == CMD_FMT);
-  assign ucmdWTCH = (uart_command == CMD_WTCH);
-  assign ucmdCALIB = (uart_command == CMD_CALIB);
 
-  assign cmdR = (bcmdR) ? bcmdR : ucmdR;
-  assign cmdL = (bcmdL) ? bcmdL : ucmdL;
-  assign cmdU = (bcmdU) ? bcmdU : ucmdU;
-  assign cmdD = (bcmdD) ? bcmdD : ucmdD;
+  assign q = r_q;
 
 endmodule

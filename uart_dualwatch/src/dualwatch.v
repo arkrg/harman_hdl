@@ -1,13 +1,13 @@
 module dualwatch (
-    input clk,
-    input rst,
-    input fmt_mode,  // 1: HH.MM, 0: SS.mm
-    input stpw_mode,  // 1: stpw 0: wtch
-    input calib_mode,
-    input btnL,
-    input btnR,
-    input btnU,
-    input btnD,
+    input        clk,
+    input        rst,
+    input        fmt_mode,    // 1: HH.MM, 0: SS.mm
+    input        stpw_mode,   // 1: stpw 0: wtch
+    input        calib_mode,
+    input        btnL,
+    input        btnR,
+    input        btnU,
+    input        btnD,
     output [3:0] led,
     output [3:0] fnd_com,
     output [7:0] fnd_data
@@ -21,17 +21,17 @@ module dualwatch (
     reg [3:0] led_reg;
 
     dualwatch_core U_DW_CORE (
-        .clk        (clk),
-        .rst        (rst),
-        .fmt_mode   (fmt_mode),
-        .calib_mode (calib_mode),
-        .btnR       (btnR),
-        .btnL       (btnL),
-        .btnU       (btnU),
-        .btnD       (btnD),
-        .fnd_com    (fnd_com),
-        .stpw_mode  (stpw_mode),
-        .fnd_data   (fnd_data)
+        .clk       (clk),
+        .rst       (rst),
+        .fmt_mode  (fmt_mode),
+        .calib_mode(calib_mode),
+        .btnR      (btnR),
+        .btnL      (btnL),
+        .btnU      (btnU),
+        .btnD      (btnD),
+        .fnd_com   (fnd_com),
+        .stpw_mode (stpw_mode),
+        .fnd_data  (fnd_data)
     );
     //led blinker
     always @(*) begin
